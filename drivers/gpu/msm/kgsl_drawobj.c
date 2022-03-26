@@ -1441,23 +1441,14 @@ void kgsl_drawobjs_cache_exit(void)
 {
 	kmem_cache_destroy(memobjs_cache);
 	kmem_cache_destroy(sparseobjs_cache);
-
-	kmem_cache_destroy(drawobj_sparse_cache);
-	kmem_cache_destroy(drawobj_sync_cache);
-	kmem_cache_destroy(drawobj_cmd_cache);
 }
 
 int kgsl_drawobjs_cache_init(void)
 {
-	memobjs_cache = KMEM_CACHE(kgsl_memobj_node, SLAB_HWCACHE_ALIGN);
-	sparseobjs_cache = KMEM_CACHE(kgsl_sparseobj_node, SLAB_HWCACHE_ALIGN);
+	memobjs_cache = KMEM_CACHE(kgsl_memobj_node, 0);
+	sparseobjs_cache = KMEM_CACHE(kgsl_sparseobj_node, 0);
 
-	drawobj_sparse_cache = KMEM_CACHE(kgsl_drawobj_sparse, SLAB_HWCACHE_ALIGN);
-	drawobj_sync_cache = KMEM_CACHE(kgsl_drawobj_sync, SLAB_HWCACHE_ALIGN);
-	drawobj_cmd_cache = KMEM_CACHE(kgsl_drawobj_cmd, SLAB_HWCACHE_ALIGN);
-
-	if (!memobjs_cache || !sparseobjs_cache ||
-	    !drawobj_sparse_cache || !drawobj_sync_cache || !drawobj_cmd_cache)
+	if (!memobjs_cache || !sparseobjs_cache)
 		return -ENOMEM;
 
 	return 0;
