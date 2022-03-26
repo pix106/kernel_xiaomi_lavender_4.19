@@ -524,7 +524,7 @@ static void ion_dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
 
 	if (buffer->heap->ops->map_kernel) {
 		mutex_lock(&buffer->lock);
-		ion_buffer_kmap_put(buffer);
+		vaddr = ion_buffer_kmap_get(buffer);
 		mutex_unlock(&buffer->lock);
 	}
 }
