@@ -399,6 +399,19 @@ QDF_STATUS csr_scan_get_result_for_bssid(struct mac_context *mac_ctx,
 					 struct qdf_mac_addr *bssid,
 					 tCsrScanResultInfo *res);
 
+/**
+ * csr_get_scan_res_using_bssid - gets the scan result from scan cache without
+ * BLM filtered for the given BSSID
+ * @mac_ctx: mac context
+ * @bssid: bssid to get the scan result for
+ * @res: pointer to tCsrScanResultInfo
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS csr_get_scan_res_using_bssid(struct mac_context *mac_ctx,
+					struct qdf_mac_addr *bssid,
+					tCsrScanResultInfo *res);
+
 /*
  * csr_scan_filter_results() -
  *  Filter scan results based on valid channel list.
@@ -660,16 +673,19 @@ void csr_get_pmk_info(struct mac_context *mac_ctx, uint8_t session_id,
 		      tPmkidCacheInfo *pmk_cache);
 
 /*
- * csr_roam_set_psk_pmk() -
- * store PSK/PMK
- * mac  - pointer to global structure for MAC
- * sessionId - Sme session id
- * pPSK_PMK - pointer to an array of Psk/Pmk
+ * csr_roam_set_psk_pmk() - store PSK/PMK in CSR session
+ *
+ * @mac  - pointer to global structure for MAC
+ * @sessionId - Sme session id
+ * @psk_pmk - pointer to an array of PSK/PMK
+ * @update_to_fw - Send RSO update config command to firmware to update
+ * PMK
+ *
  * Return QDF_STATUS - usually it succeed unless sessionId is not found
- * Note:
  */
 QDF_STATUS csr_roam_set_psk_pmk(struct mac_context *mac, uint32_t sessionId,
-				uint8_t *pPSK_PMK, size_t pmk_len);
+				uint8_t *psk_pmk, size_t pmk_len,
+				bool update_to_fw);
 
 QDF_STATUS csr_roam_set_key_mgmt_offload(struct mac_context *mac_ctx,
 					 uint32_t session_id,
@@ -846,15 +862,30 @@ void csr_roam_del_pmk_cache_entry(struct csr_roam_session *session,
  * csr_update_pmk_cache_ft - API to update MDID in PMKSA cache entry
  * @mac: Mac context
  * @vdev_id: session ID
- * @BSSID: Connecting AP MAC address
- * @mdid: Connecting AP Mobility Domain ID
+ * @pmksa: Connecting AP pmk info
+ * @scan_res: Connecting AP scan result
  *
  * Return: None
  */
-void csr_update_pmk_cache_ft(struct mac_context *mac,
-			     uint32_t vdev_id, uint8_t *cache_id);
+void csr_update_pmk_cache_ft(struct mac_context *mac, uint32_t vdev_id,
+			     tPmkidCacheInfo *pmksa,
+			     tCsrScanResultInfo *scan_res);
 
 #if defined(WLAN_SAE_SINGLE_PMK) && defined(WLAN_FEATURE_ROAM_OFFLOAD)
+/**
+ * csr_set_sae_single_pmk_bss_cap - API to set the peer SAE single pmk
+ * feature supported status
+ * @session: sme session pointer
+ * @single_pmk_capable_bss: Flag to indicate SAE single pmk supported BSSID or
+ * not
+ * @bssid: BSSID for which the flag is to be set
+ *
+ * Return : None
+ */
+void csr_set_sae_single_pmk_bss_cap(struct csr_roam_session *session,
+				    bool single_pmk_capable_bss,
+				    struct qdf_mac_addr *bssid);
+
 /**
  * csr_clear_sae_single_pmk - API to clear single_pmk_info cache
  * @pmac: mac context
@@ -866,12 +897,28 @@ void csr_update_pmk_cache_ft(struct mac_context *mac,
 void csr_clear_sae_single_pmk(struct mac_context *mac,
 			      uint8_t vdev_id, tPmkidCacheInfo *pmksa);
 
+void csr_store_sae_single_pmk_to_global_cache(struct mac_context *mac,
+					      struct csr_roam_session *session,
+					      uint8_t vdev_id);
 #else
+static inline
+void csr_set_sae_single_pmk_bss_cap(struct csr_roam_session *session,
+				    bool single_pmk_capable_bss,
+				    struct qdf_mac_addr *bssid)
+{
+}
+
 static inline void
 csr_clear_sae_single_pmk(struct mac_context *mac, uint8_t vdev_id,
 			 tPmkidCacheInfo *pmksa)
 {
 }
+
+static inline
+void csr_store_sae_single_pmk_to_global_cache(struct mac_context *mac,
+					      struct csr_roam_session *session,
+					      uint8_t vdev_id)
+{}
 #endif
 
 QDF_STATUS csr_send_ext_change_channel(struct mac_context *mac_ctx,

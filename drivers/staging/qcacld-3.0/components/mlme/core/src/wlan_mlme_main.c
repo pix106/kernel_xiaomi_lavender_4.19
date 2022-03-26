@@ -425,6 +425,8 @@ static void mlme_init_generic_cfg(struct wlan_objmgr_psoc *psoc,
 		cfg_get(psoc, CFG_DISABLE_4WAY_HS_OFFLOAD);
 	gen->dfs_chan_ageout_time =
 		cfg_get(psoc, CFG_DFS_CHAN_AGEOUT_TIME);
+	gen->sae_connect_retries =
+		cfg_get(psoc, CFG_SAE_CONNECION_RETRIES);
 }
 
 static void mlme_init_edca_ani_cfg(struct wlan_mlme_edca_params *edca_params)
@@ -666,6 +668,8 @@ static void mlme_init_timeout_cfg(struct wlan_objmgr_psoc *psoc,
 			cfg_get(psoc, CFG_PS_DATA_INACTIVITY_TIMEOUT);
 	timeouts->wmi_wq_watchdog_timeout =
 			cfg_get(psoc, CFG_WMI_WQ_WATCHDOG);
+	timeouts->sae_auth_failure_timeout =
+			cfg_get(psoc, CFG_SAE_AUTH_FAILURE_TIMEOUT);
 }
 
 static void mlme_init_ht_cap_in_cfg(struct wlan_objmgr_psoc *psoc,
@@ -2407,6 +2411,36 @@ QDF_STATUS mlme_cfg_on_psoc_enable(struct wlan_objmgr_psoc *psoc)
 	mlme_init_roam_score_config(psoc, mlme_cfg);
 
 	return status;
+}
+
+struct sae_auth_retry *mlme_get_sae_auth_retry(struct wlan_objmgr_vdev *vdev)
+{
+	struct mlme_legacy_priv *mlme_priv;
+
+	mlme_priv = wlan_vdev_mlme_get_ext_hdl(vdev);
+	if (!mlme_priv) {
+		mlme_legacy_err("vdev legacy private object is NULL");
+		return NULL;
+	}
+
+	return &mlme_priv->sae_retry;
+}
+
+void mlme_free_sae_auth_retry(struct wlan_objmgr_vdev *vdev)
+{
+	struct mlme_legacy_priv *mlme_priv;
+
+	mlme_priv = wlan_vdev_mlme_get_ext_hdl(vdev);
+	if (!mlme_priv) {
+		mlme_legacy_err("vdev legacy private object is NULL");
+		return;
+	}
+
+	mlme_priv->sae_retry.sae_auth_max_retry = 0;
+	if (mlme_priv->sae_retry.sae_auth.data)
+		qdf_mem_free(mlme_priv->sae_retry.sae_auth.data);
+	mlme_priv->sae_retry.sae_auth.data = NULL;
+	mlme_priv->sae_retry.sae_auth.len = 0;
 }
 
 void mlme_set_self_disconnect_ies(struct wlan_objmgr_vdev *vdev,
